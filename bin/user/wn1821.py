@@ -20,7 +20,7 @@
 # [WN1821]
 #     driver = user.wn1821
 #     url = http://192.168.4.1/get_livedata_info
-#     out_temp_and_humidity_channels = 1,2 # Optional, specify channels for outdoor temperature and humidity if you have only WN31 sensors, it will pick sensor with lowest temperature, comma separated list
+#     out_temp_and_humidity_channels = [1,2] # Optional, specify channels for outdoor temperature and humidity if you have only WN31 sensors, it will pick sensor with lowest temperature, comma separated list
 
 
 import logging
