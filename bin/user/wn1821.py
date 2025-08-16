@@ -20,7 +20,7 @@
 # [WN1821]
 #     driver = user.wn1821
 #     url = http://192.168.4.1/get_livedata_info
-#     out_temp_and_humidity_channels = [1,2] # Optional, specify channels for outdoor temperature and humidity if you have only WN31 sensors, it will pick sensor with lowest temperature, comma separated list
+#     out_temp_and_humidity_channels = 1,2 # Optional, specify channels for outdoor temperature and humidity if you have only WN31 sensors, it will pick sensor with lowest temperature, comma separated list
 
 
 import logging
@@ -42,7 +42,20 @@ class WN1821(weewx.drivers.AbstractDevice):
     def __init__(self, **config):
         """Initialize the driver with configuration from weewx.conf."""
         self.url = config.get('url', 'http://192.168.4.1/get_livedata_info')  # Default http://192.168.4.1/get_livedata_info if not provided
-        self.out_temp_and_humidity_channels = config.get('out_temp_and_humidity_channels', None)  # Default None if not provided
+        self.out_temp_and_humidity_channels = config.get('out_temp_and_humidity_channels', None)
+        if self.out_temp_and_humidity_channels is not None:
+            if isinstance(self.out_temp_and_humidity_channels, str):
+                # Split the string by commas and strip whitespace
+                self.out_temp_and_humidity_channels = [ch.strip() for ch in self.out_temp_and_humidity_channels.split(",") if ch.strip()]
+            elif isinstance(self.out_temp_and_humidity_channels, int):
+                # Convert a single number to a list
+                self.out_temp_and_humidity_channels = [str(self.out_temp_and_humidity_channels)]
+            # If the resulting list is empty, set it to None
+            if not self.out_temp_and_humidity_channels:
+                self.out_temp_and_humidity_channels = None
+        else:
+            # Keep None if no channels are specified
+            self.out_temp_and_humidity_channels = None
         log.info(f"WN1821 driver initialized with:\n"
          f"  URL: {self.url}\n"
          f"  Out Temp and Humidity Channels: {self.out_temp_and_humidity_channels}")
@@ -80,17 +93,23 @@ class WN1821(weewx.drivers.AbstractDevice):
                 if "ch_aisle" in data:
                     for channel in data["ch_aisle"]:
                         channel_number = channel["channel"]
+                        if channel_number not in [str(i) for i in range(1, 9)]:  # Allow only channels 1 to 8
+                            log.warning(f"Ignoring invalid channel: {channel_number}")
+                            continue
                         _packet[f"extraTemp{channel_number}"] = float(channel["temp"])
                         _packet[f"extraHumid{channel_number}"] = int(channel["humidity"].strip('%'))
                         _packet[f"batteryStatus{channel_number}"] = float(channel["battery"])
                     
                     # Calculate outdoor temperature and humidity from choosen channels
-                    if self.out_temp_and_humidity_channels:
+                    if self.out_temp_and_humidity_channels is not None:
                         # Find the channel with the lowest temperature
                         lowest_temp_channel = None
                         lowest_temp = float("inf")
 
                         for channel in data["ch_aisle"]:
+                            if channel_number not in [str(i) for i in range(1, 9)]:  # Allow only channels 1 to 8
+                                log.warning(f"Ignoring invalid channel: {channel_number}")
+                                continue
                             if channel["channel"] in self.out_temp_and_humidity_channels:
                                 temp = float(channel["temp"])
                                 if temp < lowest_temp:
