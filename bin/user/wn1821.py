@@ -135,8 +135,9 @@ class WN1821(weewx.drivers.AbstractDevice):
             except Exception as e:
                 log.error(f"Error processing data: {e}")
 
-            # Sleep for the desired interval (e.g., 0.001 seconds)
-            time.sleep(0.001)
+            # Sleep for the desired interval (e.g., 60 seconds)
+            # Keep at least one minute to prevent calling api too often
+            time.sleep(60)
 
 
 # To test this driver, run it directly as follows:
